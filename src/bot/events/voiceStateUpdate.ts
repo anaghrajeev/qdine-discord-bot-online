@@ -39,7 +39,7 @@ export const handleVoiceStateUpdate = async (oldState: VoiceState, newState: Voi
               );
 
             await reportChannel.send({
-              content: `🟢 **${displayName || username}** started working!`,
+              content: `🟢 <@${userId}> started working!`,
               components: [row]
             });
           }
