@@ -36,7 +36,17 @@ async function bootstrap() {
       logger.error('Discord client error', error);
     });
 
+    client.on('warn', (info) => {
+      logger.warn(`Discord client warning: ${info}`);
+    });
+
+    client.on('debug', (info) => {
+      // Very verbose, but necessary to debug login hangs
+      console.log(`[DISCORD DEBUG] ${info}`);
+    });
+
     // Login to Discord
+    logger.info('Attempting to login to Discord...');
     await client.login(ENV.DISCORD_TOKEN);
     
   } catch (error) {
