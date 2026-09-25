@@ -142,7 +142,7 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
     }
     
     else if (commandName === 'guide') {
-      const guideText = `🤖 **QDine Work Bot - Quick Guide**\n\n` +
+      const guideText = `🤖 **Tempo - Quick Guide**\n\n` +
         `**How to use:**\n` +
         `1️⃣ **Start Working**: Join the \`🔊 working\` voice channel. Your timer starts automatically.\n` +
         `2️⃣ **Set a Goal**: When you join, click the **[🎯 Set Focus Goal]** button in the \`💬 work-reports\` channel to tell the team what you're working on.\n` +

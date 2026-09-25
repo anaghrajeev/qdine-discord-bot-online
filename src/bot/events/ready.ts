@@ -46,8 +46,8 @@ const registerCommands = async (client: Client) => {
     new SlashCommandBuilder().setName('today').setDescription('Show today\'s working summary'),
     new SlashCommandBuilder().setName('week').setDescription('Show weekly working hours'),
     new SlashCommandBuilder().setName('status').setDescription('Show current team status'),
-    new SlashCommandBuilder().setName('guide').setDescription('How to use the QDine Work Bot'),
-    new SlashCommandBuilder().setName('dashboard').setDescription('Access the QDine admin dashboard'),
+    new SlashCommandBuilder().setName('guide').setDescription('How to use Tempo'),
+    new SlashCommandBuilder().setName('dashboard').setDescription('Access the admin dashboard'),
     new SlashCommandBuilder()
       .setName('purge')
       .setDescription('Delete a specified number of messages (Admin only)')
