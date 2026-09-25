@@ -2,23 +2,26 @@ services:
   - type: web
     name: qdine-discord-bot
     env: node
-    buildCommand: npm install && npm run build && npx prisma db push
+    buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: DATABASE_URL
-        # Set to your Neon PostgreSQL connection string (e.g., postgres://...)
-        sync: false
       - key: DISCORD_TOKEN
         sync: false
       - key: DISCORD_CLIENT_ID
         sync: false
       - key: DISCORD_GUILD_ID
         sync: false
+      - key: DATABASE_URL
+        sync: false
       - key: WORKING_CHANNEL_ID
         sync: false
+      - key: BREAK_CHANNEL_ID
+        sync: false
       - key: REPORT_CHANNEL_ID
+        sync: false
+      - key: ADMIN_CATEGORY_ID
         sync: false
       - key: ADMIN_ROLE_ID
         sync: false
