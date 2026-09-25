@@ -112,7 +112,7 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       await interaction.reply({ content: '✅ Your stand-up has been submitted!', flags: ['Ephemeral'] });
       
       if (interaction.channel) {
-        await interaction.channel.send(`📝 **Stand-up from <@${interaction.user.id}>:**\n\n**1️⃣ Yesterday:**\n${yesterday}\n\n**2️⃣ Today:**\n${today}\n\n**3️⃣ Blockers:**\n${blockers}`);
+        await (interaction.channel as any).send(`📝 **Stand-up from <@${interaction.user.id}>:**\n\n**1️⃣ Yesterday:**\n${yesterday}\n\n**2️⃣ Today:**\n${today}\n\n**3️⃣ Blockers:**\n${blockers}`);
       }
     }
     return;
