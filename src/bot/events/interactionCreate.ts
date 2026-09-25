@@ -30,6 +30,40 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       modal.addComponents(firstActionRow);
       
       await interaction.showModal(modal);
+    } else if (interaction.customId === 'submit_standup') {
+      const modal = new ModalBuilder()
+        .setCustomId('standup_modal')
+        .setTitle('Daily Stand-up');
+        
+      const yesterdayInput = new TextInputBuilder()
+        .setCustomId('yesterday_input')
+        .setLabel("What did you do yesterday?")
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(true)
+        .setMaxLength(300);
+
+      const todayInput = new TextInputBuilder()
+        .setCustomId('today_input')
+        .setLabel("What are you doing today?")
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(true)
+        .setMaxLength(300);
+
+      const blockersInput = new TextInputBuilder()
+        .setCustomId('blockers_input')
+        .setLabel("Any blockers?")
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(false)
+        .setPlaceholder("None")
+        .setMaxLength(200);
+        
+      modal.addComponents(
+        new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(yesterdayInput),
+        new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(todayInput),
+        new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(blockersInput)
+      );
+      
+      await interaction.showModal(modal);
     }
     return;
   }
@@ -43,6 +77,42 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
         await interaction.reply({ content: `✅ Goal set: **${goal}**` });
       } else {
         await interaction.reply({ content: 'Could not set goal. Are you currently working?', flags: ['Ephemeral'] });
+      }
+    } else if (interaction.customId === 'standup_modal') {
+      const yesterday = interaction.fields.getTextInputValue('yesterday_input');
+      const today = interaction.fields.getTextInputValue('today_input');
+      const blockers = interaction.fields.getTextInputValue('blockers_input') || 'None';
+      
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      
+      // Ensure user exists
+      await prisma.user.upsert({
+        where: { discord_user_id: interaction.user.id },
+        update: { username: interaction.user.username, display_name: (interaction.member as any)?.displayName },
+        create: {
+          discord_user_id: interaction.user.id,
+          username: interaction.user.username,
+          display_name: (interaction.member as any)?.displayName,
+        }
+      });
+      
+      const user = await prisma.user.findUnique({ where: { discord_user_id: interaction.user.id }});
+      
+      await prisma.standup.create({
+        data: {
+          user_id: user.id,
+          yesterday,
+          today,
+          blockers
+        }
+      });
+      
+      // Reply to interaction so the user knows it succeeded, then post the result publicly
+      await interaction.reply({ content: '✅ Your stand-up has been submitted!', flags: ['Ephemeral'] });
+      
+      if (interaction.channel) {
+        await interaction.channel.send(`📝 **Stand-up from <@${interaction.user.id}>:**\n\n**1️⃣ Yesterday:**\n${yesterday}\n\n**2️⃣ Today:**\n${today}\n\n**3️⃣ Blockers:**\n${blockers}`);
       }
     }
     return;
@@ -139,6 +209,38 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       }
       
       await interaction.editReply({ content: message });
+    }
+    
+    else if (commandName === 'leaderboard') {
+      const { reportService } = require('../../services/reportService');
+      const { formatDurationString } = require('../../utils/time');
+      const reports = await reportService.getWeeklyReport();
+      
+      if (reports.length === 0) {
+        await interaction.reply({ content: 'No work has been logged this week yet!', flags: ['Ephemeral'] });
+        return;
+      }
+      
+      reports.sort((a: any, b: any) => b.netWorkSeconds - a.netWorkSeconds);
+      
+      const medals = ['🥇', '🥈', '🥉'];
+      let leaderboardText = `🏆 **Weekly Productivity Leaderboard** 🏆\n\n`;
+      
+      for (let i = 0; i < reports.length; i++) {
+        if (reports[i].netWorkSeconds <= 0) continue;
+        
+        const rank = i < 3 ? medals[i] : `**#${i + 1}**`;
+        leaderboardText += `${rank} **${reports[i].displayName || reports[i].username}**: ${formatDurationString(reports[i].netWorkSeconds)}\n`;
+      }
+      
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      const settings = await prisma.settings.findFirst();
+      if (settings?.monthly_reward) {
+        leaderboardText += `\n🎁 *Monthly Top Performer Reward: ${settings.monthly_reward}*`;
+      }
+      
+      await interaction.reply({ content: leaderboardText });
     }
     
     else if (commandName === 'guide') {

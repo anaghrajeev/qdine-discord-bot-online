@@ -19,6 +19,7 @@ model User {
 
   work_sessions   WorkSession[]
   breaks          Break[]
+  standups        Standup[]
 }
 
 model WorkSession {
@@ -59,6 +60,18 @@ model Settings {
   daily_report_time  String   @default("18:00")
   weekly_report_day  String   @default("FRIDAY")
   weekly_report_time String   @default("18:00")
+  monthly_reward     String?  // Text for the monthly leaderboard reward
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
+}
+
+model Standup {
+  id           String   @id @default(uuid())
+  user_id      String
+  user         User     @relation(fields: [user_id], references: [id])
+  date         DateTime @default(now())
+  yesterday    String   @db.Text
+  today        String   @db.Text
+  blockers     String   @db.Text
+  created_at   DateTime @default(now())
 }

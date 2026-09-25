@@ -35,7 +35,15 @@ export const schedulerService = {
       timezone: ENV.TIMEZONE
     });
     
-    logger.info(`Scheduler initialized. Daily at ${ENV.DAILY_REPORT_TIME}, Weekly at ${ENV.WEEKLY_REPORT_TIME} on ${ENV.WEEKLY_REPORT_DAY}`);
+    // Daily Standup cron (10:00 AM Monday-Friday)
+    cron.schedule('0 10 * * 1-5', async () => {
+      logger.info('Running scheduled daily standup prompt...');
+      await this.sendStandupPrompt(client);
+    }, {
+      timezone: ENV.TIMEZONE
+    });
+    
+    logger.info(`Scheduler initialized. Daily at ${ENV.DAILY_REPORT_TIME}, Weekly at ${ENV.WEEKLY_REPORT_TIME} on ${ENV.WEEKLY_REPORT_DAY}, Scrum at 10:00 AM`);
   },
 
   async sendDailyReport(client: Client) {
@@ -101,5 +109,29 @@ export const schedulerService = {
     const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
     const index = days.indexOf(dayString.toUpperCase());
     return index !== -1 ? index : 5; // Default to Friday
+  },
+
+  async sendStandupPrompt(client: Client) {
+    try {
+      const channel = await client.channels.fetch(ENV.REPORT_CHANNEL_ID) as TextChannel;
+      if (!channel) return;
+
+      const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+      
+      const row = new ActionRowBuilder()
+        .addComponents(
+          new ButtonBuilder()
+            .setCustomId('submit_standup')
+            .setLabel('📝 Submit Standup')
+            .setStyle(ButtonStyle.Success),
+        );
+
+      await channel.send({
+        content: `🌅 **Good morning @everyone! It's time for our Daily Stand-up!**\n\nPlease click the button below to answer the 3 standard questions:\n1️⃣ What did you do yesterday?\n2️⃣ What are you doing today?\n3️⃣ Any blockers?`,
+        components: [row]
+      });
+    } catch (error) {
+      logger.error('Failed to send standup prompt', error);
+    }
   }
 };
