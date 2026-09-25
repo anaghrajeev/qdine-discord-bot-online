@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Use PostgreSQL provided by Neon (https://neon.tech/)
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @default(uuid())
+  discord_user_id String   @unique
+  username        String
+  display_name    String?
+  is_active       Boolean  @default(true)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  work_sessions   WorkSession[]
+  breaks          Break[]
+}
+
+model WorkSession {
+  id               String   @id @default(uuid())
+  user_id          String
+  user             User     @relation(fields: [user_id], references: [id])
+  channel_id       String
+  start_time       DateTime
+  end_time         DateTime?
+  duration_seconds Int?
+  status           String   // ACTIVE, COMPLETED, INTERRUPTED
+  goal             String?  // The focus goal for this session
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  breaks           Break[]
+}
+
+model Break {
+  id               String      @id @default(uuid())
+  user_id          String
+  user             User        @relation(fields: [user_id], references: [id])
+  session_id       String
+  session          WorkSession @relation(fields: [session_id], references: [id])
+  start_time       DateTime
+  end_time         DateTime?
+  duration_seconds Int?
+  created_at       DateTime    @default(now())
+}
+
+model Settings {
+  id                 String   @id @default(uuid())
+  guild_id           String   @unique
+  working_channel_id String?
+  report_channel_id  String?
+  admin_role_id      String?
+  timezone           String   @default("Asia/Kolkata")
+  daily_report_time  String   @default("18:00")
+  weekly_report_day  String   @default("FRIDAY")
+  weekly_report_time String   @default("18:00")
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+}
