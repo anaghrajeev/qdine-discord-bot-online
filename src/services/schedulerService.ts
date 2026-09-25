@@ -35,8 +35,8 @@ export const schedulerService = {
       timezone: ENV.TIMEZONE
     });
     
-    // Daily Standup cron (10:00 AM Monday-Friday)
-    cron.schedule('0 10 * * 1-5', async () => {
+    // Daily Standup cron (10:00 AM Monday-Saturday)
+    cron.schedule('0 10 * * 1-6', async () => {
       logger.info('Running scheduled daily standup prompt...');
       await this.sendStandupPrompt(client);
     }, {
