@@ -2,7 +2,7 @@ services:
   - type: web
     name: qdine-discord-bot
     env: node
-    buildCommand: npm install && npx prisma generate && npx prisma db push
+    buildCommand: npm install && npm run build && npx prisma db push
     startCommand: npm start
     envVars:
       - key: NODE_ENV
