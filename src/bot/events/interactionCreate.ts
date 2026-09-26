@@ -1,6 +1,7 @@
 import { Interaction, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalActionRowComponentBuilder } from 'discord.js';
 import { workSessionService } from '../../services/workSessionService';
 import { reportService } from '../../services/reportService';
+import { aiService } from '../../services/aiService';
 import { formatDurationString } from '../../utils/time';
 import { logger } from '../../utils/logger';
 import { ENV } from '../../config/environment';
@@ -119,6 +120,17 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       
       // Reply to interaction so the user knows it succeeded
       await interaction.reply({ content: `✅ Your stand-up has been submitted! You earned **+10 XP**!${levelUp}`, flags: ['Ephemeral'] });
+
+      // Generate AI Motivation
+      if (interaction.channel && interaction.channel.isTextBased()) {
+        const aiMessage = await aiService.generateStandupMotivation(
+          user.display_name || user.username,
+          yesterday,
+          today,
+          blockers
+        );
+        await (interaction.channel as any).send(`🤖 ${aiMessage}`);
+      }
     }
     return;
   }

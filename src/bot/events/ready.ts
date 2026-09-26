@@ -31,6 +31,11 @@ export const handleReady = async (client: Client) => {
         }
       }
     }
+    
+    // Start burnout checker (runs every 5 minutes)
+    setInterval(() => {
+      workSessionService.checkBurnout().catch(err => logger.error('Burnout check failed', err));
+    }, 5 * 60 * 1000);
 
     schedulerService.init(client);
     await registerCommands(client);
