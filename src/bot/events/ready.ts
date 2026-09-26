@@ -57,6 +57,7 @@ const registerCommands = async (client: Client) => {
           .setDescription('Number of messages to delete (1-100)')
           .setRequired(true)
           .setMinValue(1)
+          .setMaxValue(100)),
     new SlashCommandBuilder()
       .setName('assign')
       .setDescription('Assign a bug to a user')
