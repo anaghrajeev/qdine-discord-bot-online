@@ -430,7 +430,9 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       
       const levelUp = newLevel > user.level ? `\n🎉 **LEVEL UP!** You are now Level ${newLevel}! 🎉` : '';
       
-      await interaction.reply({ content: `✅ Bug **#${bugId}** has been marked as completed! You earned **+50 XP**!${levelUp}` });
+      const aiMessage = await aiService.generateBugFixCelebration(user.display_name || user.username, bug.description);
+
+      await interaction.reply({ content: `✅ **Bug #${bugId} Completed**! (+50 XP)${levelUp}\n${aiMessage}` });
     }
     
     else if (commandName === 'ask') {

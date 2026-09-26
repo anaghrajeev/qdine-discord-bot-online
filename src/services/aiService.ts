@@ -61,5 +61,22 @@ Instructions:
       logger.error('Error answering question with AI:', error);
       return "I'm sorry, my brain experienced a glitch while trying to answer that. Please try again later!";
     }
+  },
+
+  async generateBugFixCelebration(username: string, bugDescription: string): Promise<string> {
+    const genAI = this.getGenAI();
+    if (!genAI) return `✅ Bug fixed: ${bugDescription}. Great job, ${username}!`;
+
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const prompt = `You are Tempo AI, a hype-man bot for a dev team.
+Developer ${username} just completed this bug/task: "${bugDescription}"
+Write a 1-sentence public celebration message to hype them up. Use an emoji. Keep it under 100 characters.`;
+
+      const result = await model.generateContent(prompt);
+      return result.response.text();
+    } catch (error) {
+      return `✅ Bug fixed: ${bugDescription}. Great job, ${username}!`;
+    }
   }
 };

@@ -7,6 +7,7 @@ import { handleReady } from './bot/events/ready';
 import { handleVoiceStateUpdate } from './bot/events/voiceStateUpdate';
 import { handlePresenceUpdate } from './bot/events/presenceUpdate';
 import { handleInteractionCreate } from './bot/events/interactionCreate';
+import { handleMessageCreate } from './bot/events/messageCreate';
 
 async function bootstrap() {
   try {
@@ -27,6 +28,7 @@ async function bootstrap() {
     client.on('voiceStateUpdate', handleVoiceStateUpdate);
     client.on('presenceUpdate', handlePresenceUpdate);
     client.on('interactionCreate', handleInteractionCreate);
+    client.on('messageCreate', handleMessageCreate);
 
     client.on('disconnect', () => {
       logger.warn('Bot disconnected from Discord. It will attempt to reconnect automatically.');
