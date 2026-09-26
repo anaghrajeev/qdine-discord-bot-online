@@ -57,9 +57,9 @@ Instructions:
 
       const result = await model.generateContent(prompt);
       return result.response.text();
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error answering question with AI:', error);
-      return "I'm sorry, my brain experienced a glitch while trying to answer that. Please try again later!";
+      return `I'm sorry, my brain experienced a glitch! Error: ${error?.message || String(error)}`;
     }
   },
 

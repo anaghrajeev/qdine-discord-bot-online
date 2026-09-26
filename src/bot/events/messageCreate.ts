@@ -41,9 +41,9 @@ export const handleMessageCreate = async (message: Message) => {
       const answer = await aiService.answerQuestion(username, question, combinedContext);
       
       await message.reply(answer);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error in messageCreate AI handling:', error);
-      await message.reply("Sorry, my brain glitched for a second there!");
+      await message.reply(`Sorry, my brain glitched! Error: ${error?.message || String(error)}`);
     }
   }
 };
