@@ -276,8 +276,8 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       const { PrismaClient } = require('@prisma/client');
       const prisma = new PrismaClient();
       
-      const targetUser = interaction.options.getUser('user');
-      const description = interaction.options.getString('description');
+      const targetUser = interaction.options.getUser('user', true);
+      const description = interaction.options.getString('description', true);
       
       // Ensure reporter exists
       await prisma.user.upsert({
@@ -299,8 +299,8 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       const bug = await prisma.bug.create({
         data: {
           description,
-          assignee_id: assignee.id,
-          reporter_id: reporter.id,
+          assignee_id: assignee!.id,
+          reporter_id: reporter!.id,
           status: 'OPEN'
         }
       });
@@ -341,7 +341,7 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       const { PrismaClient } = require('@prisma/client');
       const prisma = new PrismaClient();
       
-      const bugIdStr = interaction.options.getString('id');
+      const bugIdStr = interaction.options.getString('id', true);
       const bugId = parseInt(bugIdStr, 10);
       
       if (isNaN(bugId)) {
