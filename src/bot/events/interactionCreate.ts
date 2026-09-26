@@ -267,7 +267,7 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       
       const dashboardLink = 'https://qdine-work-dashboard.vercel.app'; // Placeholder link
       await interaction.reply({ 
-        content: `📊 **QDine Admin Dashboard**\n\nAccess the dashboard here to view team analytics, export payroll CSVs, and manage schedules:\n🔗 ${dashboardLink}`, 
+        content: `📊 **Tempo Admin Dashboard**\n\nAccess the dashboard here to view team analytics, export payroll CSVs, and manage schedules:\n🔗 ${dashboardLink}`, 
         flags: ['Ephemeral'] 
       });
     }
