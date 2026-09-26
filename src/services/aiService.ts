@@ -20,7 +20,7 @@ export const aiService = {
 
     for (const modelName of models) {
       try {
-        const model = genAI.getGenerativeModel({ model: modelName });
+        const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1' });
         const result = await model.generateContent(prompt);
         return result.response.text();
       } catch (e: any) {
