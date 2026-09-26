@@ -455,8 +455,21 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       if (bugs.length === 0) {
         bugContext = 'There are currently no bugs in the system.';
       }
+
+      let chatHistory = '';
+      if (interaction.channel && 'messages' in interaction.channel) {
+        try {
+          const fetchedMessages = await interaction.channel.messages.fetch({ limit: 5 });
+          chatHistory = fetchedMessages
+            .reverse()
+            .map(m => `${m.author.username}: ${m.content.replace(/<@!?[0-9]+>/g, '@Bot')}`)
+            .join('\n');
+        } catch (e) {
+          // ignore error if we can't fetch messages
+        }
+      }
       
-      const answer = await aiService.answerQuestion(username, question, bugContext);
+      const answer = await aiService.answerQuestion(username, question, bugContext, chatHistory);
       await interaction.editReply({ content: answer });
     }
     

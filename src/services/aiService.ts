@@ -81,22 +81,24 @@ If they have a blocker, offer brief sympathy or tell the team to help out.`;
     }
   },
 
-  async answerQuestion(username: string, question: string, bugContext: string): Promise<string> {
+  async answerQuestion(username: string, question: string, bugContext: string, chatHistory: string = ''): Promise<string> {
     if (!process.env.GROQ_API_KEY) return "Sorry, my AI features are currently disabled because the API key is missing!";
 
     try {
       const systemPrompt = `You are Tempo AI, a highly intelligent and helpful bot for a software development team on Discord.
 Instructions:
-1. Provide the best crafted, most helpful answer.
-2. If they ask about bugs or work, use the context provided.
+1. ONLY answer the user's specific question.
+2. If they ask about bugs or work, use the context provided below.
 3. Keep your reply strictly under 100 words. Be concise and direct.
-4. Keep the tone friendly and lively.`;
+4. Keep the tone friendly and lively.
+5. IMPORTANT: You CANNOT perform actions (you cannot delete messages, close bugs, write code, or execute commands). If the user just says hello, just say hello back. Do NOT offer to perform actions you cannot do.`;
 
       const prompt = `The user asking the question is named: ${username}.
 
 Here is the current state of the team's bug tracker and active work sessions:
 ${bugContext}
 
+${chatHistory ? `Here is the recent chat history for context:\n${chatHistory}\n` : ''}
 The user asked: "${question}"`;
 
       return await this.executeWithFallback(prompt, systemPrompt);

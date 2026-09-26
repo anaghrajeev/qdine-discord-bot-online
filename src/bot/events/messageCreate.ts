@@ -38,7 +38,14 @@ export const handleMessageCreate = async (message: Message) => {
 
       const combinedContext = `BUGS:\n${bugContext}\nWORKING NOW:\n${workContext}`;
 
-      const answer = await aiService.answerQuestion(username, question, combinedContext);
+      const fetchedMessages = await message.channel.messages.fetch({ limit: 6 });
+      const chatHistory = fetchedMessages
+        .filter(m => m.id !== message.id)
+        .reverse()
+        .map(m => `${m.author.username}: ${m.content.replace(/<@!?[0-9]+>/g, '@Bot')}`)
+        .join('\n');
+
+      const answer = await aiService.answerQuestion(username, question, combinedContext, chatHistory);
       
       await message.reply(answer);
     } catch (error: any) {
