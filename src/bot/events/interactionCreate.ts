@@ -433,6 +433,32 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       await interaction.reply({ content: `✅ Bug **#${bugId}** has been marked as completed! You earned **+50 XP**!${levelUp}` });
     }
     
+    else if (commandName === 'ask') {
+      await interaction.deferReply();
+      
+      const question = interaction.options.getString('question', true);
+      const username = (interaction.member as any)?.displayName || interaction.user.username;
+      
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      
+      const bugs = await prisma.bug.findMany({
+        include: { assignee: true, reporter: true }
+      });
+      
+      let bugContext = '';
+      bugs.forEach((b: any) => {
+        bugContext += `Bug #${b.id}: "${b.description}" - Assigned to: ${b.assignee?.display_name || b.assignee?.username} - Status: ${b.status}\n`;
+      });
+      
+      if (bugs.length === 0) {
+        bugContext = 'There are currently no bugs in the system.';
+      }
+      
+      const answer = await aiService.answerQuestion(username, question, bugContext);
+      await interaction.editReply({ content: answer });
+    }
+    
     else if (commandName === 'purge') {
       const isAdmin = interaction.memberPermissions && interaction.memberPermissions.has('Administrator');
       if (!isAdmin) {

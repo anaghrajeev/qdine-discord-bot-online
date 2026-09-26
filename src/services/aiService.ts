@@ -33,5 +33,33 @@ Do not be overly formal. Use emojis. Keep it under 150 characters.`;
       logger.error('Error generating AI motivation:', error);
       return `Thanks for the standup, ${username}! Let's crush it today! 🚀`;
     }
+  },
+
+  async answerQuestion(username: string, question: string, bugContext: string): Promise<string> {
+    const genAI = this.getGenAI();
+    if (!genAI) return "Sorry, my AI features are currently disabled because the API key is missing!";
+
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const prompt = `You are Tempo AI, a highly intelligent and helpful bot for a software development team on Discord.
+The user asking the question is named: ${username}.
+
+Here is the current state of the team's bug tracker:
+${bugContext}
+
+The user asked: "${question}"
+
+Instructions:
+1. Provide the best crafted, most helpful answer.
+2. If they ask about bugs, use the context provided.
+3. Keep your reply strictly under 100 words. Be concise and direct.
+4. Keep the tone friendly and lively.`;
+
+      const result = await model.generateContent(prompt);
+      return result.response.text();
+    } catch (error) {
+      logger.error('Error answering question with AI:', error);
+      return "I'm sorry, my brain experienced a glitch while trying to answer that. Please try again later!";
+    }
   }
 };

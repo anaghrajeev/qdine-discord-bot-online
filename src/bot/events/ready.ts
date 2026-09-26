@@ -78,6 +78,10 @@ const registerCommands = async (client: Client) => {
       .setName('fix')
       .setDescription('Mark a bug as completed')
       .addStringOption(option => option.setName('id').setDescription('The ID of the bug').setRequired(true)),
+    new SlashCommandBuilder()
+      .setName('ask')
+      .setDescription('Ask the Tempo AI a question')
+      .addStringOption(option => option.setName('question').setDescription('What do you want to ask?').setRequired(true)),
   ].map(command => command.toJSON());
 
   const rest = new REST({ version: '10' }).setToken(ENV.DISCORD_TOKEN);
