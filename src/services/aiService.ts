@@ -24,11 +24,19 @@ export const aiService = {
     }
     
     // Sort so we try smaller/faster models first if possible
-    models = models.sort();
+    models = models.sort((a, b) => {
+      // Prioritize small/fast models
+      if (a.includes('20b') || a.includes('8b')) return -1;
+      if (b.includes('20b') || b.includes('8b')) return 1;
+      return a.localeCompare(b);
+    });
 
     const errors: any[] = [];
 
     for (const modelName of models) {
+      // Skip audio/vision models that don't support text chat well
+      if (modelName.toLowerCase().includes('whisper') || modelName.toLowerCase().includes('vision')) continue;
+      
       try {
         const messages: any[] = [];
         if (systemPrompt) {
