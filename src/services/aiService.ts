@@ -15,8 +15,8 @@ export const aiService = {
     const groq = this.getGroq();
     if (!groq) throw new Error("API Key missing");
 
-    const models = ["llama3-8b-8192", "llama-3.1-8b-instant", "mixtral-8x7b-32768"];
-    let lastError = null;
+    const models = ["llama-3.1-8b-instant", "llama-3.1-70b-versatile", "gemma2-9b-it", "mixtral-8x7b-32768"];
+    const errors: any[] = [];
 
     for (const modelName of models) {
       try {
@@ -35,11 +35,12 @@ export const aiService = {
         
         return result.choices[0]?.message?.content || "No response generated.";
       } catch (e: any) {
-        lastError = e;
+        errors.push({ model: modelName, error: e.message });
         logger.warn(`Model ${modelName} failed, trying next... Error: ${e.message}`);
       }
     }
-    throw lastError;
+    
+    throw new Error(`All models failed: ${JSON.stringify(errors)}`);
   },
 
   async generateStandupMotivation(username: string, yesterday: string, today: string, blockers: string): Promise<string> {
