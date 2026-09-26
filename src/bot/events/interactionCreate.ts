@@ -337,6 +337,30 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       await interaction.reply({ content: message, flags: ['Ephemeral'] });
     }
     
+    else if (commandName === 'allbugs') {
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      
+      const bugs = await prisma.bug.findMany({
+        where: { status: 'OPEN' },
+        include: { assignee: true },
+        orderBy: { created_at: 'asc' }
+      });
+      
+      if (bugs.length === 0) {
+        await interaction.reply({ content: '🎉 There are no open bugs for the team!', flags: ['Ephemeral'] });
+        return;
+      }
+      
+      let message = `📋 **All Open Bugs** 📋\n\n`;
+      bugs.forEach((b: any) => {
+        const name = b.assignee?.display_name || b.assignee?.username || 'Unknown';
+        message += `**#${b.id}** [${name}] - ${b.description}\n`;
+      });
+      
+      await interaction.reply({ content: message, flags: ['Ephemeral'] });
+    }
+    
     else if (commandName === 'fix') {
       const { PrismaClient } = require('@prisma/client');
       const prisma = new PrismaClient();

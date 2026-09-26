@@ -67,6 +67,9 @@ const registerCommands = async (client: Client) => {
       .setName('bugs')
       .setDescription('List your open assigned bugs'),
     new SlashCommandBuilder()
+      .setName('allbugs')
+      .setDescription('List all open bugs for the entire team'),
+    new SlashCommandBuilder()
       .setName('fix')
       .setDescription('Mark a bug as completed')
       .addStringOption(option => option.setName('id').setDescription('The ID of the bug').setRequired(true)),
