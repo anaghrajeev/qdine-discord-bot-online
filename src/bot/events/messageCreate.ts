@@ -1,8 +1,7 @@
 import { Message } from 'discord.js';
 import { aiService } from '../../services/aiService';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../../database/connection';
+import { logger } from '../../utils/logger';
 
 export const handleMessageCreate = async (message: Message) => {
   // Ignore bots to prevent infinite loops
@@ -43,6 +42,7 @@ export const handleMessageCreate = async (message: Message) => {
       
       await message.reply(answer);
     } catch (error) {
+      logger.error('Error in messageCreate AI handling:', error);
       await message.reply("Sorry, my brain glitched for a second there!");
     }
   }

@@ -1,4 +1,5 @@
 import { Interaction, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalActionRowComponentBuilder } from 'discord.js';
+import { prisma } from '../../database/connection';
 import { workSessionService } from '../../services/workSessionService';
 import { reportService } from '../../services/reportService';
 import { aiService } from '../../services/aiService';
@@ -84,8 +85,8 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       const today = interaction.fields.getTextInputValue('today_input');
       const blockers = interaction.fields.getTextInputValue('blockers_input') || 'None';
       
-      const { PrismaClient } = require('@prisma/client');
-      const prisma = new PrismaClient();
+      
+      
       
       // Ensure user exists
       await prisma.user.upsert({
@@ -99,6 +100,7 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       });
       
       const user = await prisma.user.findUnique({ where: { discord_user_id: interaction.user.id }});
+      if (!user) return;
       
       await prisma.standup.create({
         data: {
@@ -250,8 +252,8 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
         leaderboardText += `${rank} **${reports[i].displayName || reports[i].username}**: ${formatDurationString(reports[i].netWorkSeconds)}\n`;
       }
       
-      const { PrismaClient } = require('@prisma/client');
-      const prisma = new PrismaClient();
+      
+      
       const settings = await prisma.settings.findFirst();
       if (settings?.monthly_reward) {
         leaderboardText += `\n🎁 *Monthly Top Performer Reward: ${settings.monthly_reward}*`;
@@ -294,8 +296,8 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
     }
 
     else if (commandName === 'assign') {
-      const { PrismaClient } = require('@prisma/client');
-      const prisma = new PrismaClient();
+      
+      
       
       const targetUser = interaction.options.getUser('user', true);
       const description = interaction.options.getString('description', true);
@@ -330,8 +332,8 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
     }
     
     else if (commandName === 'bugs') {
-      const { PrismaClient } = require('@prisma/client');
-      const prisma = new PrismaClient();
+      
+      
       
       const user = await prisma.user.findUnique({ where: { discord_user_id: interaction.user.id }});
       if (!user) {
@@ -359,8 +361,8 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
     }
     
     else if (commandName === 'allbugs') {
-      const { PrismaClient } = require('@prisma/client');
-      const prisma = new PrismaClient();
+      
+      
       
       const bugs = await prisma.bug.findMany({
         where: { status: 'OPEN' },
@@ -383,8 +385,8 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
     }
     
     else if (commandName === 'fix') {
-      const { PrismaClient } = require('@prisma/client');
-      const prisma = new PrismaClient();
+      
+      
       
       const bugIdStr = interaction.options.getString('id', true);
       const bugId = parseInt(bugIdStr, 10);
@@ -440,9 +442,6 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       
       const question = interaction.options.getString('question', true);
       const username = (interaction.member as any)?.displayName || interaction.user.username;
-      
-      const { PrismaClient } = require('@prisma/client');
-      const prisma = new PrismaClient();
       
       const bugs = await prisma.bug.findMany({
         include: { assignee: true, reporter: true }
