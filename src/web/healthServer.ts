@@ -36,7 +36,7 @@ export const startHealthServer = () => {
     });
   });
 
-  app.listen(ENV.PORT, () => {
-    logger.info(`Health server listening on port ${ENV.PORT}`);
+  app.listen(ENV.PORT, '0.0.0.0', () => {
+    logger.info(`Health server listening on 0.0.0.0:${ENV.PORT}`);
   });
 };
