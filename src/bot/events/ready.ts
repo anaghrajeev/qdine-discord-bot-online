@@ -57,8 +57,18 @@ const registerCommands = async (client: Client) => {
           .setDescription('Number of messages to delete (1-100)')
           .setRequired(true)
           .setMinValue(1)
-          .setMaxValue(100)
-      ),
+    new SlashCommandBuilder()
+      .setName('assign')
+      .setDescription('Assign a bug to a user')
+      .addUserOption(option => option.setName('user').setDescription('The user to assign the bug to').setRequired(true))
+      .addStringOption(option => option.setName('description').setDescription('The bug description').setRequired(true)),
+    new SlashCommandBuilder()
+      .setName('bugs')
+      .setDescription('List your open assigned bugs'),
+    new SlashCommandBuilder()
+      .setName('fix')
+      .setDescription('Mark a bug as completed')
+      .addStringOption(option => option.setName('id').setDescription('The ID of the bug').setRequired(true)),
   ].map(command => command.toJSON());
 
   const rest = new REST({ version: '10' }).setToken(ENV.DISCORD_TOKEN);

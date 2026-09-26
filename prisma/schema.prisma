@@ -20,6 +20,8 @@ model User {
   work_sessions   WorkSession[]
   breaks          Break[]
   standups        Standup[]
+  assigned_bugs   Bug[] @relation("BugAssignee")
+  reported_bugs   Bug[] @relation("BugReporter")
 }
 
 model WorkSession {
@@ -74,4 +76,16 @@ model Standup {
   today        String   @db.Text
   blockers     String   @db.Text
   created_at   DateTime @default(now())
+}
+
+model Bug {
+  id          Int      @id @default(autoincrement())
+  description String
+  assignee_id String
+  assignee    User     @relation("BugAssignee", fields: [assignee_id], references: [id])
+  reporter_id String
+  reporter    User     @relation("BugReporter", fields: [reporter_id], references: [id])
+  status      String   @default("OPEN") // OPEN, COMPLETED
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 }

@@ -74,7 +74,7 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       const updated = await workSessionService.setGoal(interaction.user.id, goal);
       
       if (updated) {
-        await interaction.reply({ content: `✅ Goal set: **${goal}**` });
+        await interaction.reply({ content: `✅ Goal set: **${goal}**`, flags: ['Ephemeral'] });
       } else {
         await interaction.reply({ content: 'Could not set goal. Are you currently working?', flags: ['Ephemeral'] });
       }
@@ -108,12 +108,8 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
         }
       });
       
-      // Reply to interaction so the user knows it succeeded, then post the result publicly
+      // Reply to interaction so the user knows it succeeded
       await interaction.reply({ content: '✅ Your stand-up has been submitted!', flags: ['Ephemeral'] });
-      
-      if (interaction.channel) {
-        await (interaction.channel as any).send(`📝 **Stand-up from <@${interaction.user.id}>:**\n\n**1️⃣ Yesterday:**\n${yesterday}\n\n**2️⃣ Today:**\n${today}\n\n**3️⃣ Blockers:**\n${blockers}`);
-      }
     }
     return;
   }
@@ -274,6 +270,113 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
         content: `📊 **QDine Admin Dashboard**\n\nAccess the dashboard here to view team analytics, export payroll CSVs, and manage schedules:\n🔗 ${dashboardLink}`, 
         flags: ['Ephemeral'] 
       });
+    }
+
+    else if (commandName === 'assign') {
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      
+      const targetUser = interaction.options.getUser('user');
+      const description = interaction.options.getString('description');
+      
+      // Ensure reporter exists
+      await prisma.user.upsert({
+        where: { discord_user_id: interaction.user.id },
+        update: { username: interaction.user.username, display_name: (interaction.member as any)?.displayName },
+        create: { discord_user_id: interaction.user.id, username: interaction.user.username, display_name: (interaction.member as any)?.displayName }
+      });
+      
+      // Ensure assignee exists
+      await prisma.user.upsert({
+        where: { discord_user_id: targetUser.id },
+        update: { username: targetUser.username },
+        create: { discord_user_id: targetUser.id, username: targetUser.username, display_name: targetUser.username }
+      });
+      
+      const reporter = await prisma.user.findUnique({ where: { discord_user_id: interaction.user.id }});
+      const assignee = await prisma.user.findUnique({ where: { discord_user_id: targetUser.id }});
+      
+      const bug = await prisma.bug.create({
+        data: {
+          description,
+          assignee_id: assignee.id,
+          reporter_id: reporter.id,
+          status: 'OPEN'
+        }
+      });
+      
+      await interaction.reply({ content: `✅ Bug **#${bug.id}** assigned to <@${targetUser.id}>!\n**Description:** ${description}` });
+    }
+    
+    else if (commandName === 'bugs') {
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      
+      const user = await prisma.user.findUnique({ where: { discord_user_id: interaction.user.id }});
+      if (!user) {
+        await interaction.reply({ content: 'You have no assigned bugs.', flags: ['Ephemeral'] });
+        return;
+      }
+      
+      const bugs = await prisma.bug.findMany({
+        where: { assignee_id: user.id, status: 'OPEN' },
+        orderBy: { created_at: 'asc' }
+      });
+      
+      if (bugs.length === 0) {
+        await interaction.reply({ content: '🎉 You have no open bugs!', flags: ['Ephemeral'] });
+        return;
+      }
+      
+      let message = `🐛 **Your Open Bugs** 🐛\n\n`;
+      bugs.forEach((b: any) => {
+        message += `**#${b.id}** - ${b.description}\n`;
+      });
+      message += `\nUse \`/fix <id>\` to mark a bug as fixed.`;
+      
+      await interaction.reply({ content: message, flags: ['Ephemeral'] });
+    }
+    
+    else if (commandName === 'fix') {
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      
+      const bugIdStr = interaction.options.getString('id');
+      const bugId = parseInt(bugIdStr, 10);
+      
+      if (isNaN(bugId)) {
+        await interaction.reply({ content: 'Invalid bug ID.', flags: ['Ephemeral'] });
+        return;
+      }
+      
+      const user = await prisma.user.findUnique({ where: { discord_user_id: interaction.user.id }});
+      if (!user) {
+        await interaction.reply({ content: 'User not found.', flags: ['Ephemeral'] });
+        return;
+      }
+      
+      const bug = await prisma.bug.findUnique({ where: { id: bugId } });
+      if (!bug) {
+        await interaction.reply({ content: `Bug #${bugId} not found.`, flags: ['Ephemeral'] });
+        return;
+      }
+      
+      if (bug.assignee_id !== user.id) {
+        await interaction.reply({ content: `Bug #${bugId} is not assigned to you!`, flags: ['Ephemeral'] });
+        return;
+      }
+      
+      if (bug.status === 'COMPLETED') {
+        await interaction.reply({ content: `Bug #${bugId} is already completed!`, flags: ['Ephemeral'] });
+        return;
+      }
+      
+      await prisma.bug.update({
+        where: { id: bugId },
+        data: { status: 'COMPLETED' }
+      });
+      
+      await interaction.reply({ content: `✅ Bug **#${bugId}** has been marked as completed! Great job!` });
     }
     
     else if (commandName === 'purge') {
