@@ -15,7 +15,17 @@ export const aiService = {
     const groq = this.getGroq();
     if (!groq) throw new Error("API Key missing");
 
-    const models = ["llama-3.1-8b-instant", "llama-3.1-70b-versatile", "gemma2-9b-it", "mixtral-8x7b-32768"];
+    let models = [];
+    try {
+      const modelList = await groq.models.list();
+      models = modelList.data.map((m: any) => m.id);
+    } catch (error) {
+      throw new Error("Failed to fetch available models from Groq API.");
+    }
+    
+    // Sort so we try smaller/faster models first if possible
+    models = models.sort();
+
     const errors: any[] = [];
 
     for (const modelName of models) {
