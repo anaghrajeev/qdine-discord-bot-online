@@ -81,6 +81,20 @@ export const workSessionService = {
       }
     });
 
+    // XP calculation: 10 XP per hour (1 XP per 6 minutes)
+    const xpEarned = Math.floor(durationSeconds / 360);
+    if (xpEarned > 0) {
+      const user = await prisma.user.findUnique({ where: { id: activeSession.user_id } });
+      if (user) {
+        const newXp = user.xp + xpEarned;
+        const newLevel = Math.floor(newXp / 100) + 1;
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { xp: newXp, level: newLevel }
+        });
+      }
+    }
+
     logger.info(`Closed work session for user ${discordUserId}. Duration: ${durationSeconds}s`);
     return closedSession;
   },

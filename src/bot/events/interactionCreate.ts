@@ -108,8 +108,17 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
         }
       });
       
+      const newXp = user.xp + 10;
+      const newLevel = Math.floor(newXp / 100) + 1;
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { xp: newXp, level: newLevel }
+      });
+      
+      const levelUp = newLevel > user.level ? `\n🎉 **LEVEL UP!** You are now Level ${newLevel}! 🎉` : '';
+      
       // Reply to interaction so the user knows it succeeded
-      await interaction.reply({ content: '✅ Your stand-up has been submitted!', flags: ['Ephemeral'] });
+      await interaction.reply({ content: `✅ Your stand-up has been submitted! You earned **+10 XP**!${levelUp}`, flags: ['Ephemeral'] });
     }
     return;
   }
@@ -400,7 +409,16 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
         data: { status: 'COMPLETED' }
       });
       
-      await interaction.reply({ content: `✅ Bug **#${bugId}** has been marked as completed! Great job!` });
+      const newXp = user.xp + 50;
+      const newLevel = Math.floor(newXp / 100) + 1;
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { xp: newXp, level: newLevel }
+      });
+      
+      const levelUp = newLevel > user.level ? `\n🎉 **LEVEL UP!** You are now Level ${newLevel}! 🎉` : '';
+      
+      await interaction.reply({ content: `✅ Bug **#${bugId}** has been marked as completed! You earned **+50 XP**!${levelUp}` });
     }
     
     else if (commandName === 'purge') {
