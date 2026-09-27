@@ -2,6 +2,8 @@ import { Message } from 'discord.js';
 import { aiService } from '../../services/aiService';
 import { prisma } from '../../database/connection';
 import { logger } from '../../utils/logger';
+import { reportService } from '../../services/reportService';
+import { formatDurationString } from '../../utils/time';
 
 export const handleMessageCreate = async (message: Message) => {
   // Ignore bots to prevent infinite loops
@@ -36,7 +38,23 @@ export const handleMessageCreate = async (message: Message) => {
       });
       if (activeSessions.length === 0) workContext = 'Nobody is currently working.';
 
-      const combinedContext = `BUGS:\n${bugContext}\nWORKING NOW:\n${workContext}`;
+      // Get dashboard data (Reports)
+      const dailyReport = await reportService.getDailyReport();
+      const weeklyReport = await reportService.getWeeklyReport();
+
+      let statsContext = 'TODAY\\'S WORK HOURS:\n';
+      dailyReport.forEach(r => {
+         statsContext += `- ${r.displayName || r.username}: ${formatDurationString(r.netWorkSeconds)} (${r.sessionCount} sessions)\n`;
+      });
+      if (dailyReport.length === 0) statsContext += 'No work logged today yet.\n';
+
+      statsContext += '\nTHIS WEEK\\'S WORK HOURS:\n';
+      weeklyReport.forEach(r => {
+         statsContext += `- ${r.displayName || r.username}: ${formatDurationString(r.netWorkSeconds)} (${r.sessionCount} sessions)\n`;
+      });
+      if (weeklyReport.length === 0) statsContext += 'No work logged this week yet.\n';
+
+      const combinedContext = `BUGS:\n${bugContext}\n\nWORKING NOW:\n${workContext}\n\n${statsContext}`;
 
       const fetchedMessages = await message.channel.messages.fetch({ limit: 6 });
       const chatHistory = fetchedMessages

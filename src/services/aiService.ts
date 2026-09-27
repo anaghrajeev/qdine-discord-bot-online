@@ -2,6 +2,13 @@ import Groq from 'groq-sdk';
 import { ENV } from '../config/environment';
 import { logger } from '../utils/logger';
 
+// Hardcoded preferred models to avoid making a network request to groq.models.list() every time
+const PREFERRED_MODELS = [
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+  'mixtral-8x7b-32768'
+];
+
 export const aiService = {
   getGroq() {
     if (!process.env.GROQ_API_KEY) {
@@ -11,32 +18,13 @@ export const aiService = {
     return new Groq({ apiKey: process.env.GROQ_API_KEY });
   },
 
-  async executeWithFallback(prompt: string, systemPrompt: string = ''): Promise<string> {
+  async executeWithFallback(prompt: string, systemPrompt: string = '', maxTokens: number = 256, temperature: number = 0.7): Promise<string> {
     const groq = this.getGroq();
     if (!groq) throw new Error("API Key missing");
 
-    let models = [];
-    try {
-      const modelList = await groq.models.list();
-      models = modelList.data.map((m: any) => m.id);
-    } catch (error) {
-      throw new Error("Failed to fetch available models from Groq API.");
-    }
-    
-    // Sort so we try smaller/faster models first if possible
-    models = models.sort((a, b) => {
-      // Prioritize small/fast models
-      if (a.includes('20b') || a.includes('8b')) return -1;
-      if (b.includes('20b') || b.includes('8b')) return 1;
-      return a.localeCompare(b);
-    });
-
     const errors: any[] = [];
 
-    for (const modelName of models) {
-      // Skip audio/vision models that don't support text chat well
-      if (modelName.toLowerCase().includes('whisper') || modelName.toLowerCase().includes('vision')) continue;
-      
+    for (const modelName of PREFERRED_MODELS) {
       try {
         const messages: any[] = [];
         if (systemPrompt) {
@@ -47,8 +35,8 @@ export const aiService = {
         const result = await groq.chat.completions.create({
           messages: messages,
           model: modelName,
-          temperature: 0.7,
-          max_tokens: 256,
+          temperature: temperature,
+          max_tokens: maxTokens,
         });
         
         return result.choices[0]?.message?.content || "No response generated.";
@@ -65,43 +53,53 @@ export const aiService = {
     if (!process.env.GROQ_API_KEY) return `Thanks for the standup, ${username}! Keep up the great work!`;
 
     try {
-      const systemPrompt = `You are a highly encouraging, casual, and energetic team motivator bot for a Discord server. Keep it under 150 characters. Use emojis.`;
-      const prompt = `A developer named ${username} just submitted their daily standup.
-Yesterday they did: ${yesterday}
-Today they will do: ${today}
-Blockers/Issues: ${blockers}
+      const systemPrompt = `You are 'Tempo', the team's relentless 10x senior developer bot. You run on coffee and energy drinks. You are slightly arrogant about your coding speed but deeply care about the team.
+      
+RULES:
+1. Keep it under 150 characters.
+2. Use modern developer slang (e.g., ship it, LGTM, refactor, tech debt).
+3. Be highly encouraging but in an intense, hyped-up way.
+4. Never sound like a generic AI. No corporate jargon.`;
+      
+      const prompt = `Developer ${username} submitted their standup.
+Yesterday: ${yesterday}
+Today: ${today}
+Blockers: ${blockers}
 
-Write a short, 1-2 sentence encouraging response to them. 
-If they have a blocker, offer brief sympathy or tell the team to help out.`;
+Give them a short, hyped-up 1-2 sentence response.`;
 
-      return await this.executeWithFallback(prompt, systemPrompt);
+      return await this.executeWithFallback(prompt, systemPrompt, 150, 0.8);
     } catch (error) {
       logger.error('Error generating AI motivation:', error);
       return `Thanks for the standup, ${username}! Let's crush it today! 🚀`;
     }
   },
 
-  async answerQuestion(username: string, question: string, bugContext: string, chatHistory: string = ''): Promise<string> {
+  async answerQuestion(username: string, question: string, dashboardContext: string, chatHistory: string = ''): Promise<string> {
     if (!process.env.GROQ_API_KEY) return "Sorry, my AI features are currently disabled because the API key is missing!";
 
     try {
-      const systemPrompt = `You are Tempo AI, a highly intelligent and helpful bot for a software development team on Discord.
-Instructions:
-1. ONLY answer the user's specific question.
-2. If they ask about bugs or work, use the context provided below.
-3. Keep your reply strictly under 100 words. Be concise and direct.
-4. Keep the tone friendly and lively.
-5. IMPORTANT: You CANNOT perform actions (you cannot delete messages, close bugs, write code, or execute commands). If the user just says hello, just say hello back. Do NOT offer to perform actions you cannot do.`;
+      const systemPrompt = `You are 'Tempo', a highly intelligent, 10x developer bot who manages the team. 
+You are sharp, slightly sarcastic, but incredibly helpful and deeply analytical. You love shipping code and hate bugs.
 
-      const prompt = `The user asking the question is named: ${username}.
+TONE & RULES:
+1. Speak in a confident, slightly snarky, but deeply helpful tone. Use emojis.
+2. Refer to yourself as Tempo. NEVER say "As an AI..." or apologize excessively.
+3. You have access to real-time dashboard data (provided below). Use this data to answer questions about who worked the most, who is slacking, or what bugs exist. 
+4. Analyze the data when asked (e.g. if asked who is working the hardest, look at the netWorkSeconds).
+5. Keep your answer strictly under 150 words. Be direct.
+6. You CANNOT perform actions (cannot delete messages, write code, etc).
 
-Here is the current state of the team's bug tracker and active work sessions:
-${bugContext}
+DASHBOARD DATA & CONTEXT:
+${dashboardContext}
 
-${chatHistory ? `Here is the recent chat history for context:\n${chatHistory}\n` : ''}
-The user asked: "${question}"`;
+RECENT CHAT HISTORY:
+${chatHistory}`;
 
-      return await this.executeWithFallback(prompt, systemPrompt);
+      const prompt = `User ${username} asks: "${question}"`;
+
+      // Use a larger max_tokens for analytical answers and lower temperature for facts
+      return await this.executeWithFallback(prompt, systemPrompt, 500, 0.4);
     } catch (error: any) {
       logger.error('Error answering question with AI:', error);
       return `I'm sorry, my brain experienced a glitch! Error: ${error?.message || String(error)}`;
@@ -112,11 +110,14 @@ The user asked: "${question}"`;
     if (!process.env.GROQ_API_KEY) return `✅ Bug fixed: ${bugDescription}. Great job, ${username}!`;
 
     try {
-      const systemPrompt = "You are Tempo AI, a hype-man bot for a dev team.";
-      const prompt = `Developer ${username} just completed this bug/task: "${bugDescription}"
-Write a 1-sentence public celebration message to hype them up. Use an emoji. Keep it under 100 characters.`;
+      const systemPrompt = `You are 'Tempo', the team's hype-man and 10x senior dev. 
+RULES:
+1. Keep it under 100 characters.
+2. Hype them up for crushing the bug.
+3. Use a slight edge of sarcasm (e.g. "Only took you 3 days").`;
+      const prompt = `Developer ${username} fixed bug: "${bugDescription}". Give them a 1-sentence hype message.`;
 
-      return await this.executeWithFallback(prompt, systemPrompt);
+      return await this.executeWithFallback(prompt, systemPrompt, 100, 0.8);
     } catch (error) {
       return `✅ Bug fixed: ${bugDescription}. Great job, ${username}!`;
     }
