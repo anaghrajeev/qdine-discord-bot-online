@@ -111,7 +111,7 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
         }
       });
       
-      const newXp = user.xp + 10;
+      const newXp = user.xp + 5;
       const newLevel = Math.floor(newXp / 100) + 1;
       await prisma.user.update({
         where: { id: user.id },
@@ -121,7 +121,7 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       const levelUp = newLevel > user.level ? `\n🎉 **LEVEL UP!** You are now Level ${newLevel}! 🎉` : '';
       
       // Reply to interaction so the user knows it succeeded
-      await interaction.reply({ content: `✅ Your stand-up has been submitted! You earned **+10 XP**!${levelUp}`, flags: ['Ephemeral'] });
+      await interaction.reply({ content: `✅ Your stand-up has been submitted! You earned **+5 XP**!${levelUp}`, flags: ['Ephemeral'] });
 
       // Generate AI Motivation
       if (interaction.channel && interaction.channel.isTextBased()) {
@@ -328,7 +328,16 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
         }
       });
       
-      await interaction.reply({ content: `✅ Bug **#${bug.id}** assigned to <@${targetUser.id}>!\n**Description:** ${description}` });
+      const newXp = reporter!.xp + 25;
+      const newLevel = Math.floor(newXp / 100) + 1;
+      await prisma.user.update({
+        where: { id: reporter!.id },
+        data: { xp: newXp, level: newLevel }
+      });
+      
+      const levelUp = newLevel > reporter!.level ? `\n🎉 **LEVEL UP!** You are now Level ${newLevel}! 🎉` : '';
+      
+      await interaction.reply({ content: `✅ Bug **#${bug.id}** assigned to <@${targetUser.id}>! You earned **+25 XP** for reporting!${levelUp}\n**Description:** ${description}` });
     }
     
     else if (commandName === 'bugs') {
