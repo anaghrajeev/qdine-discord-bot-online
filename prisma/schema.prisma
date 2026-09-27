@@ -24,6 +24,7 @@ model User {
   standups        Standup[]
   assigned_bugs   Bug[] @relation("BugAssignee")
   reported_bugs   Bug[] @relation("BugReporter")
+  leads           Lead[]
 }
 
 model WorkSession {
@@ -90,4 +91,20 @@ model Bug {
   status      String   @default("OPEN") // OPEN, COMPLETED
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
+}
+
+model Lead {
+  id            String    @id @default(uuid())
+  client_name   String
+  company       String?
+  status        String    @default("NEW") // NEW, CONTACTED, FOLLOW_UP, CLOSED_WON, CLOSED_LOST
+  followup_date DateTime?
+  notes         String?   @db.Text
+  value         Int?      
+  
+  owner_id      String
+  owner         User      @relation(fields: [owner_id], references: [id])
+  
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
 }

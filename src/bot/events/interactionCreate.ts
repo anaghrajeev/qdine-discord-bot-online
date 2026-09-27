@@ -481,6 +481,65 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       const answer = await aiService.answerQuestion(username, question, bugContext, chatHistory);
       await interaction.editReply({ content: answer });
     }
+    else if (commandName === 'lead') {
+      const subcommand = interaction.options.getSubcommand();
+      const user = await prisma.user.findUnique({ where: { discord_user_id: interaction.user.id }});
+      if (!user) {
+        await interaction.reply({ content: 'User not found in system.', flags: ['Ephemeral'] });
+        return;
+      }
+
+      if (subcommand === 'add') {
+        const client_name = interaction.options.getString('client', true);
+        const company = interaction.options.getString('company', true);
+        const followup = interaction.options.getString('followup');
+        
+        await prisma.lead.create({
+          data: {
+            client_name,
+            company,
+            owner_id: user.id,
+            notes: followup ? `Follow-up: ${followup}` : null
+          }
+        });
+        await interaction.reply({ content: `✅ Added lead **${client_name}** from **${company}**!` });
+      } else if (subcommand === 'list') {
+        const leads = await prisma.lead.findMany({ where: { owner_id: user.id, status: { not: 'CLOSED_WON' } } });
+        if (leads.length === 0) {
+          await interaction.reply({ content: 'You have no active leads.', flags: ['Ephemeral'] });
+          return;
+        }
+        let msg = `💼 **Your Active Leads** 💼\n\n`;
+        leads.forEach(l => {
+          msg += `- **ID:** \`${l.id.substring(0, 8)}\` | **Client:** ${l.client_name} (${l.company}) | **Status:** ${l.status}\n`;
+        });
+        await interaction.reply({ content: msg, flags: ['Ephemeral'] });
+      } else if (subcommand === 'close') {
+        const leadIdShort = interaction.options.getString('id', true);
+        const leads = await prisma.lead.findMany({ where: { owner_id: user.id, id: { startsWith: leadIdShort } } });
+        if (leads.length === 0) {
+          await interaction.reply({ content: 'Lead not found.', flags: ['Ephemeral'] });
+          return;
+        }
+        const lead = leads[0];
+        if (lead.status === 'CLOSED_WON') {
+          await interaction.reply({ content: 'Lead is already closed won!', flags: ['Ephemeral'] });
+          return;
+        }
+        
+        await prisma.lead.update({ where: { id: lead.id }, data: { status: 'CLOSED_WON' } });
+        
+        const newXp = user.xp + 100;
+        const newLevel = Math.floor(newXp / 100) + 1;
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { xp: newXp, level: newLevel }
+        });
+        const levelUp = newLevel > user.level ? `\n🎉 **LEVEL UP!** You are now Level ${newLevel}! 🎉` : '';
+        
+        await interaction.reply({ content: `🏆 **SALE CLOSED!** 🏆\n<@${interaction.user.id}> just closed a deal with **${lead.client_name}** (${lead.company})!\nThey earned **+100 XP**!${levelUp}` });
+      }
+    }
     
     else if (commandName === 'purge') {
       const isAdmin = interaction.memberPermissions && interaction.memberPermissions.has('Administrator');

@@ -82,6 +82,16 @@ const registerCommands = async (client: Client) => {
       .setName('ask')
       .setDescription('Ask the Tempo AI a question')
       .addStringOption(option => option.setName('question').setDescription('What do you want to ask?').setRequired(true)),
+    new SlashCommandBuilder()
+      .setName('lead')
+      .setDescription('CRM: Manage your sales leads')
+      .addSubcommand(sub => sub.setName('add').setDescription('Add a new lead')
+        .addStringOption(opt => opt.setName('client').setDescription('Client Name').setRequired(true))
+        .addStringOption(opt => opt.setName('company').setDescription('Company Name').setRequired(true))
+        .addStringOption(opt => opt.setName('followup').setDescription('Follow-up Date/Time (e.g. tomorrow 2pm)')))
+      .addSubcommand(sub => sub.setName('list').setDescription('List your active leads'))
+      .addSubcommand(sub => sub.setName('close').setDescription('Mark a lead as Won (+100 XP)')
+        .addStringOption(opt => opt.setName('id').setDescription('The ID of the lead').setRequired(true))),
   ].map(command => command.toJSON());
 
   const rest = new REST({ version: '10' }).setToken(ENV.DISCORD_TOKEN);
