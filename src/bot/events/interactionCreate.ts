@@ -481,18 +481,50 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       const question = interaction.options.getString('question', true);
       const username = (interaction.member as any)?.displayName || interaction.user.username;
       
-      const bugs = await prisma.bug.findMany({
-        include: { assignee: true, reporter: true }
-      });
-      
+      const bugs = await prisma.bug.findMany({ include: { assignee: true, reporter: true } });
       let bugContext = '';
       bugs.forEach((b: any) => {
         bugContext += `Bug #${b.id}: "${b.description}" - Assigned to: ${b.assignee?.display_name || b.assignee?.username} - Status: ${b.status}\n`;
       });
+      if (bugs.length === 0) bugContext = 'No open bugs.';
+
+      const activeSessions = await prisma.workSession.findMany({
+        where: { status: 'ACTIVE' },
+        include: { user: true }
+      });
       
-      if (bugs.length === 0) {
-        bugContext = 'There are currently no bugs in the system.';
-      }
+      let workContext = '';
+      activeSessions.forEach((s: any) => {
+        workContext += `${s.user.display_name || s.user.username} is currently working on: ${s.goal || 'No goal set'}\n`;
+      });
+      if (activeSessions.length === 0) workContext = 'Nobody is currently working.';
+
+      const dailyReport = await reportService.getDailyReport();
+      const weeklyReport = await reportService.getWeeklyReport();
+
+      let statsContext = "TODAY'S WORK HOURS:\n";
+      dailyReport.forEach(r => {
+         statsContext += `- ${r.displayName || r.username}: ${formatDurationString(r.netWorkSeconds)} (${r.sessionCount} sessions)\n`;
+      });
+      if (dailyReport.length === 0) statsContext += 'No work logged today yet.\n';
+
+      statsContext += "\nTHIS WEEK'S WORK HOURS:\n";
+      weeklyReport.forEach(r => {
+         statsContext += `- ${r.displayName || r.username}: ${formatDurationString(r.netWorkSeconds)} (${r.sessionCount} sessions)\n`;
+      });
+      if (weeklyReport.length === 0) statsContext += 'No work logged this week yet.\n';
+
+      const activeLeads = await prisma.lead.findMany({
+        where: { status: { notIn: ['CLOSED_WON', 'CLOSED_LOST'] } },
+        include: { owner: true }
+      });
+      let crmContext = 'ACTIVE CRM LEADS:\n';
+      activeLeads.forEach((l: any) => {
+        crmContext += `- ${l.client_name} (${l.company}) | Status: ${l.status} | Owner: ${l.owner.display_name || l.owner.username} | Notes: ${l.notes || 'None'}\n`;
+      });
+      if (activeLeads.length === 0) crmContext += 'No active leads in pipeline.\n';
+
+      const combinedContext = `BUGS:\n${bugContext}\n\nWORKING NOW:\n${workContext}\n\n${statsContext}\n\n${crmContext}`;
 
       let chatHistory = '';
       if (interaction.channel && 'messages' in interaction.channel) {
@@ -507,7 +539,7 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
         }
       }
       
-      const answer = await aiService.answerQuestion(username, question, bugContext, chatHistory);
+      const answer = await aiService.answerQuestion(username, question, combinedContext, chatHistory);
       await interaction.editReply({ content: answer });
     }
     else if (commandName === 'lead') {
