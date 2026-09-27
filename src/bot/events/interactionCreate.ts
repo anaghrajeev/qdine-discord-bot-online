@@ -484,7 +484,7 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       const bugs = await prisma.bug.findMany({ include: { assignee: true, reporter: true } });
       let bugContext = '';
       bugs.forEach((b: any) => {
-        bugContext += `Bug #${b.id}: "${b.description}" - Assigned to: ${b.assignee?.display_name || b.assignee?.username} - Status: ${b.status}\n`;
+        bugContext += `Bug #${b.id}: "${b.description}" - Assigned to: ${b.assignee?.display_name || b.assignee?.username} - Status: ${b.status} (Updated: ${b.updated_at.toLocaleDateString()})\n`;
       });
       if (bugs.length === 0) bugContext = 'No open bugs.';
 
@@ -524,7 +524,20 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
       });
       if (activeLeads.length === 0) crmContext += 'No active leads in pipeline.\n';
 
-      const combinedContext = `BUGS:\n${bugContext}\n\nWORKING NOW:\n${workContext}\n\n${statsContext}\n\n${crmContext}`;
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      const todaysSessions = await prisma.workSession.findMany({
+        where: { start_time: { gte: startOfDay } },
+        include: { user: true }
+      });
+      let goalsContext = "TODAY'S SESSION GOALS:\n";
+      todaysSessions.forEach((s: any) => {
+        const goalText = s.goal || 'No goal set';
+        goalsContext += `- ${s.user.display_name || s.user.username}: "${goalText}" [Status: ${s.status}]\n`;
+      });
+      if (todaysSessions.length === 0) goalsContext += 'No sessions started today.\n';
+
+      const combinedContext = `BUGS:\n${bugContext}\n\nWORKING NOW:\n${workContext}\n\n${statsContext}\n\n${crmContext}\n\n${goalsContext}`;
 
       let chatHistory = '';
       if (interaction.channel && 'messages' in interaction.channel) {
