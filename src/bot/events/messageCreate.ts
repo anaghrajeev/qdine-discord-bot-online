@@ -54,7 +54,18 @@ export const handleMessageCreate = async (message: Message) => {
       });
       if (weeklyReport.length === 0) statsContext += 'No work logged this week yet.\n';
 
-      const combinedContext = `BUGS:\n${bugContext}\n\nWORKING NOW:\n${workContext}\n\n${statsContext}`;
+      // Get CRM Leads Data
+      const activeLeads = await prisma.lead.findMany({
+        where: { status: { notIn: ['CLOSED_WON', 'CLOSED_LOST'] } },
+        include: { owner: true }
+      });
+      let crmContext = 'ACTIVE CRM LEADS:\n';
+      activeLeads.forEach((l: any) => {
+        crmContext += `- ${l.client_name} (${l.company}) | Status: ${l.status} | Owner: ${l.owner.display_name || l.owner.username} | Notes: ${l.notes || 'None'}\n`;
+      });
+      if (activeLeads.length === 0) crmContext += 'No active leads in pipeline.\n';
+
+      const combinedContext = `BUGS:\n${bugContext}\n\nWORKING NOW:\n${workContext}\n\n${statsContext}\n\n${crmContext}`;
 
       const fetchedMessages = await message.channel.messages.fetch({ limit: 6 });
       const chatHistory = fetchedMessages
