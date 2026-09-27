@@ -62,6 +62,8 @@ model Settings {
   working_channel_id String?
   report_channel_id  String?
   admin_role_id      String?
+  sales_role_id      String?
+  dev_role_id        String?
   timezone           String   @default("Asia/Kolkata")
   daily_report_time  String   @default("18:00")
   weekly_report_day  String   @default("FRIDAY")

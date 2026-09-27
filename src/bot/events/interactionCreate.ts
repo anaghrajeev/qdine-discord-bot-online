@@ -144,6 +144,35 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
   const username = interaction.user.username;
 
   try {
+    if (interaction.guildId) {
+      const settings = await prisma.settings.findUnique({ where: { guild_id: interaction.guildId } });
+      if (settings) {
+        const memberRoles = (interaction.member as any)?.roles;
+        const hasRole = (roleId: string) => memberRoles?.cache?.has(roleId) || memberRoles?.includes?.(roleId);
+        
+        const isAdmin = settings.admin_role_id ? hasRole(settings.admin_role_id) : false;
+        const isSales = settings.sales_role_id ? hasRole(settings.sales_role_id) : false;
+        const isDev = settings.dev_role_id ? hasRole(settings.dev_role_id) : false;
+        
+        const isOwner = interaction.user.id === interaction.guild?.ownerId;
+        const hasAdminPerm = isAdmin || isOwner || (interaction.memberPermissions?.has('Administrator') ?? false);
+        
+        if (commandName === 'lead' && !hasAdminPerm && !isSales) {
+          await interaction.reply({ content: '🚫 You do not have the required **Sales role** to use CRM commands.', flags: ['Ephemeral'] });
+          return;
+        }
+        
+        if (['assign', 'fix', 'bugs', 'allbugs'].includes(commandName) && !hasAdminPerm && !isDev) {
+          await interaction.reply({ content: '🚫 You do not have the required **Developer role** to use Bug tracking commands.', flags: ['Ephemeral'] });
+          return;
+        }
+        
+        if (['purge', 'dashboard'].includes(commandName) && !hasAdminPerm) {
+          await interaction.reply({ content: '🚫 You do not have the required **Admin role** to use this command.', flags: ['Ephemeral'] });
+          return;
+        }
+      }
+    }
     if (commandName === 'work') {
       const activeSession = await workSessionService.getActiveSession(userId);
       const todayReport = await reportService.getUserTodayReport(userId);
