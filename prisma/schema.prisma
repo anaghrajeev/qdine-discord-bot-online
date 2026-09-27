@@ -102,6 +102,7 @@ model Lead {
   company       String?
   status        String    @default("NEW") // NEW, CONTACTED, FOLLOW_UP, CLOSED_WON, CLOSED_LOST
   followup_date DateTime?
+  followup_sent Boolean   @default(false)
   notes         String?   @db.Text
   value         Int?      
   

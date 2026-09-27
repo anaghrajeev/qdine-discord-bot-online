@@ -6,7 +6,7 @@ import { aiService } from '../../services/aiService';
 import { formatDurationString } from '../../utils/time';
 import { logger } from '../../utils/logger';
 import { ENV } from '../../config/environment';
-
+import * as chrono from 'chrono-node';
 export const handleInteractionCreate = async (interaction: Interaction) => {
   if (interaction.isButton()) {
     if (interaction.customId.startsWith('set_goal_')) {
@@ -523,12 +523,25 @@ export const handleInteractionCreate = async (interaction: Interaction) => {
         const company = interaction.options.getString('company', true);
         const followup = interaction.options.getString('followup');
         
+        let followup_date = null;
+        let notes = null;
+        if (followup) {
+          const parsed = chrono.parseDate(followup);
+          if (parsed) {
+            followup_date = parsed;
+            notes = `Follow-up: ${followup}`;
+          } else {
+            notes = `Follow-up (unparsed): ${followup}`;
+          }
+        }
+        
         await prisma.lead.create({
           data: {
             client_name,
             company,
             owner_id: user.id,
-            notes: followup ? `Follow-up: ${followup}` : null
+            followup_date,
+            notes
           }
         });
         await interaction.reply({ content: `✅ Added lead **${client_name}** from **${company}**!` });

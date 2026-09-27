@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { Client, TextChannel } from 'discord.js';
 import { reportService } from './reportService';
+import { prisma } from '../database/connection';
 import { ENV } from '../config/environment';
 import { logger } from '../utils/logger';
 import { formatDurationString, formatDate } from '../utils/time';
@@ -41,6 +42,11 @@ export const schedulerService = {
       await this.sendStandupPrompt(client);
     }, {
       timezone: ENV.TIMEZONE
+    });
+    
+    // CRM Follow-up cron (Every 10 minutes)
+    cron.schedule('*/10 * * * *', async () => {
+      await this.sendLeadFollowups(client);
     });
     
     logger.info(`Scheduler initialized. Daily at ${ENV.DAILY_REPORT_TIME}, Weekly at ${ENV.WEEKLY_REPORT_TIME} on ${ENV.WEEKLY_REPORT_DAY}, Scrum at 10:00 AM`);
@@ -132,6 +138,37 @@ export const schedulerService = {
       });
     } catch (error) {
       logger.error('Failed to send standup prompt', error);
+    }
+  },
+
+  async sendLeadFollowups(client: Client) {
+    try {
+      const now = new Date();
+      const leadsToFollowUp = await prisma.lead.findMany({
+        where: {
+          followup_date: { lte: now },
+          followup_sent: false,
+          status: { notIn: ['CLOSED_WON', 'CLOSED_LOST'] }
+        },
+        include: { owner: true }
+      });
+
+      for (const lead of leadsToFollowUp) {
+        try {
+          const user = await client.users.fetch(lead.owner.discord_user_id);
+          if (user) {
+            await user.send(`🔔 **Lead Follow-up Reminder!**\n\nIt's time to follow up with **${lead.client_name}** (${lead.company || 'No Company'}).\n**Notes:** ${lead.notes || 'None'}`);
+            await prisma.lead.update({
+              where: { id: lead.id },
+              data: { followup_sent: true }
+            });
+          }
+        } catch (e) {
+          logger.error(`Failed to DM user ${lead.owner.discord_user_id} for lead ${lead.id}`, e);
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to process lead follow-ups', error);
     }
   }
 };
