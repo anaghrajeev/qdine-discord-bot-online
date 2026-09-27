@@ -49,7 +49,15 @@ export const schedulerService = {
       await this.sendLeadFollowups(client);
     });
     
-    logger.info(`Scheduler initialized. Daily at ${ENV.DAILY_REPORT_TIME}, Weekly at ${ENV.WEEKLY_REPORT_TIME} on ${ENV.WEEKLY_REPORT_DAY}, Scrum at 10:00 AM`);
+    // Daily Bug Reminders cron (6:00 PM every day)
+    cron.schedule('0 18 * * *', async () => {
+      logger.info('Running scheduled daily bug reminders...');
+      await this.sendDailyBugReminders(client);
+    }, {
+      timezone: ENV.TIMEZONE
+    });
+    
+    logger.info(`Scheduler initialized. Daily at ${ENV.DAILY_REPORT_TIME}, Weekly at ${ENV.WEEKLY_REPORT_TIME} on ${ENV.WEEKLY_REPORT_DAY}, Scrum at 10:00 AM, Bug Reminders at 6:00 PM`);
   },
 
   async sendDailyReport(client: Client) {
@@ -169,6 +177,55 @@ export const schedulerService = {
       }
     } catch (error) {
       logger.error('Failed to process lead follow-ups', error);
+    }
+  },
+
+  async sendDailyBugReminders(client: Client) {
+    try {
+      const channel = await client.channels.fetch(ENV.REPORT_CHANNEL_ID) as TextChannel;
+      if (!channel) return;
+
+      const openBugs = await prisma.bug.findMany({
+        where: { status: { notIn: ['COMPLETED'] } },
+        include: { assignee: true }
+      });
+
+      if (openBugs.length === 0) return;
+
+      const bugsByAssignee = new Map<string, any[]>();
+      let unassignedBugs: any[] = [];
+      
+      openBugs.forEach((bug: any) => {
+        if (!bug.assignee) {
+          unassignedBugs.push(bug);
+          return;
+        }
+        const userId = bug.assignee.discord_user_id;
+        if (!bugsByAssignee.has(userId)) {
+          bugsByAssignee.set(userId, []);
+        }
+        bugsByAssignee.get(userId)!.push(bug);
+      });
+
+      let message = `🐛 **DAILY BUG REMINDERS (6:00 PM)** 🐛\n\n`;
+      bugsByAssignee.forEach((bugs, discordUserId) => {
+        message += `<@${discordUserId}> You have **${bugs.length}** open bugs:\n`;
+        bugs.forEach(b => {
+          message += `- Bug #${b.id}: ${b.description} [${b.status}]\n`;
+        });
+        message += `\n`;
+      });
+      
+      if (unassignedBugs.length > 0) {
+        message += `⚠️ **Unassigned Bugs:**\n`;
+        unassignedBugs.forEach(b => {
+          message += `- Bug #${b.id}: ${b.description} [${b.status}]\n`;
+        });
+      }
+
+      await channel.send({ content: message });
+    } catch (error) {
+      logger.error('Failed to send bug reminders', error);
     }
   }
 };
