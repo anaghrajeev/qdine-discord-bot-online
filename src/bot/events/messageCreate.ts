@@ -42,13 +42,13 @@ export const handleMessageCreate = async (message: Message) => {
       const dailyReport = await reportService.getDailyReport();
       const weeklyReport = await reportService.getWeeklyReport();
 
-      let statsContext = 'TODAY\\'S WORK HOURS:\n';
+      let statsContext = "TODAY'S WORK HOURS:\n";
       dailyReport.forEach(r => {
          statsContext += `- ${r.displayName || r.username}: ${formatDurationString(r.netWorkSeconds)} (${r.sessionCount} sessions)\n`;
       });
       if (dailyReport.length === 0) statsContext += 'No work logged today yet.\n';
 
-      statsContext += '\nTHIS WEEK\\'S WORK HOURS:\n';
+      statsContext += "\nTHIS WEEK'S WORK HOURS:\n";
       weeklyReport.forEach(r => {
          statsContext += `- ${r.displayName || r.username}: ${formatDurationString(r.netWorkSeconds)} (${r.sessionCount} sessions)\n`;
       });
