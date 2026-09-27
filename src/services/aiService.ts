@@ -4,9 +4,8 @@ import { logger } from '../utils/logger';
 
 // Hardcoded preferred models to avoid making a network request to groq.models.list() every time
 const PREFERRED_MODELS = [
-  'llama3-70b-8192',
-  'llama3-8b-8192',
-  'gemma2-9b-it'
+  'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b'
 ];
 
 export const aiService = {
@@ -15,7 +14,10 @@ export const aiService = {
       logger.warn('GROQ_API_KEY is missing. AI features will be disabled.');
       return null;
     }
-    return new Groq({ apiKey: process.env.GROQ_API_KEY });
+    return new Groq({ 
+      apiKey: process.env.GROQ_API_KEY,
+      baseURL: process.env.GROQ_BASE_URL || undefined
+    });
   },
 
   async executeWithFallback(prompt: string, systemPrompt: string = '', maxTokens: number = 256, temperature: number = 0.7): Promise<string> {
